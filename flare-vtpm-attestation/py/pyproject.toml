@@ -1,0 +1,62 @@
+[project]
+name = "py"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+  {name = "Dinesh Pinto", email = "annual.fallout_0z@icloud.com"},
+]
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=43.0.3",
+    "pyjwt>=2.9.0",
+    "pyopenssl>=24.2.1",
+    "requests>=2.32.3",
+    "web3>=7.4.0",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.387",
+    "ruff>=0.7.2",
+]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D", "COM812", "ISC001", "T201", "T203"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pyright]
+pythonVersion = "3.12"
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+deprecateTypingAliases = true
+disableBytesTypePromotions = true
+reportUnusedClass = true
+reportUnusedFunction = true
+reportUntypedFunctionDecorator = true
+reportUntypedClassDecorator = true
+reportPrivateUsage = true
+reportTypeCommentUsage = true
+reportConstantRedefinition = true
+reportDeprecated = true
+reportInconsistentConstructor = true
+reportUninitializedInstanceVariable = true
+reportMissingParameterType = true
+reportCallInDefaultInitializer = true
+reportUnnecessaryIsInstance = true
+reportUnnecessaryCast = true
+reportUnnecessaryComparison = true
+reportUnnecessaryContains = true
+reportInvalidStubStatement = true
+reportUnusedExpression = true
+reportUnnecessaryTypeIgnoreComment = true
+reportMatchNotExhaustive = true
+reportImplicitOverride = true
+reportShadowedImports = true
