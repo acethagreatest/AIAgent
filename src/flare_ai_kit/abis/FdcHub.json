@@ -1,0 +1,40 @@
+[
+  {
+    "inputs": [
+      { "internalType": "string", "name": "attestationType", "type": "string" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" },
+      { "internalType": "bytes32", "name": "expectedResponseHash", "type": "bytes32" }
+    ],
+    "name": "requestAttestation",
+    "outputs": [
+      { "internalType": "bytes32", "name": "requestId", "type": "bytes32" }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "requestId", "type": "bytes32" }
+    ],
+    "name": "getRequestStatus",
+    "outputs": [
+      { "internalType": "uint8", "name": "status", "type": "uint8" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "requestId", "type": "bytes32" }
+    ],
+    "name": "getRequestData",
+    "outputs": [
+      { "internalType": "string", "name": "attestationType", "type": "string" },
+      { "internalType": "bytes", "name": "data", "type": "bytes" },
+      { "internalType": "bytes32", "name": "expectedResponseHash", "type": "bytes32" },
+      { "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "inputs": [
+      { "internalType": "bytes", "name": "responseData", "type": "bytes" },
+      { "internalType": "bytes32[]", "name": "merkleProof", "type": "bytes32[]" },
+      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" }
+    ],
+    "name": "verifyProof",
+    "outputs": [
+      { "internalType": "bool", "name": "isValid", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" }
+    ],
+    "name": "isValidMerkleRoot",
+    "outputs": [
+      { "internalType": "bool", "name": "isValid", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" },
+      { "internalType": "uint256", "name": "roundNumber", "type": "uint256" }
+    ],
+    "name": "getMerkleRootInfo",
+    "outputs": [
+      { "internalType": "uint256", "name": "timestamp", "type": "uint256" },
+      { "internalType": "bool", "name": "isFinalized", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
