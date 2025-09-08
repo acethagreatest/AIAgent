@@ -1,0 +1,43 @@
+[
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" },
+      { "internalType": "uint256", "name": "roundNumber", "type": "uint256" }
+    ],
+    "name": "submitMerkleRoot",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "roundNumber", "type": "uint256" }
+    ],
+    "name": "getMerkleRoot",
+    "outputs": [
+      { "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "roundNumber", "type": "uint256" }
+    ],
+    "name": "isRoundFinalized",
+    "outputs": [
+      { "internalType": "bool", "name": "isFinalized", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "roundNumber", "type": "uint256" },
+      { "indexed": true, "internalType": "bytes32", "name": "merkleRoot", "type": "bytes32" }
+    ],
+    "name": "RoundFinalized",
+    "type": "event"
+  }
+]

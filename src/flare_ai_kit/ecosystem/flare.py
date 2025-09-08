@@ -152,8 +152,11 @@ class Flare:
             raise ValueError(msg)
 
         try:
+            # Extract the secret value from SecretStr if needed
+            private_key_value = self.private_key.get_secret_value() if hasattr(self.private_key, 'get_secret_value') else self.private_key
+            
             signed_tx = self.w3.eth.account.sign_transaction(
-                tx, private_key=self.private_key
+                tx, private_key=private_key_value
             )
             logger.debug("Transaction signed.")
         except Web3Exception as e:
