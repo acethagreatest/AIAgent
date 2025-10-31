@@ -60,7 +60,7 @@ class SportsBettingAggregator:
     
     async def initialize(self):
         """Initialize all components."""
-        print("🚀 Initializing Sports Betting Aggregator...")
+        print("Initializing Sports Betting Aggregator...")
         
         # Initialize data collectors
         self.sports_collector = SportsDataCollector(self.api_keys)
@@ -79,7 +79,7 @@ class SportsBettingAggregator:
         self.da_client = DALayerClient("https://da-layer.flare.network")
         self.sports_fdc_client = SportsFDCClient(self.fdc_client, self.da_client)
         
-        print("✅ Initialization complete!")
+        print("Initialization complete.")
     
     async def collect_sports_data(
         self, 
@@ -99,7 +99,7 @@ class SportsBettingAggregator:
         if not self.sports_collector:
             raise RuntimeError("Sports collector not initialized")
         
-        print(f"📊 Collecting sports data for {[s.value for s in sports]}...")
+        print(f"Collecting sports data for {[s.value for s in sports]}...")
         
         all_data = {
             "players": [],
@@ -136,7 +136,7 @@ class SportsBettingAggregator:
                         if weather:
                             game.weather = weather
         
-        print(f"✅ Collected {len(all_data['players'])} players, {len(all_data['games'])} games, {len(all_data['prop_bets'])} prop bets")
+        print(f"Collected {len(all_data['players'])} players, {len(all_data['games'])} games, {len(all_data['prop_bets'])} prop bets")
         return all_data
     
     async def analyze_and_predict(
@@ -156,10 +156,10 @@ class SportsBettingAggregator:
         Returns:
             List of betting recommendations
         """
-        print("🤖 Analyzing data and generating predictions...")
+        print("Analyzing data and generating predictions...")
         
         if use_granular_analysis:
-            print("🔍 Using granular team/venue analysis...")
+            print("Using granular team/venue analysis...")
         
         # Generate predictions using the enhanced analyzer
         recommendations = await self.prop_bet_analyzer.analyze_prop_bets(
@@ -170,7 +170,7 @@ class SportsBettingAggregator:
             use_granular_analysis=use_granular_analysis
         )
         
-        print(f"✅ Generated {len(recommendations)} betting recommendations")
+        print(f"Generated {len(recommendations)} betting recommendations")
         return recommendations
     
     async def attest_data(self, data: Dict[str, List]) -> Dict[str, List[str]]:
@@ -187,7 +187,7 @@ class SportsBettingAggregator:
             print("⚠️ FDC not available, skipping data attestation")
             return {}
         
-        print("🔐 Attesting data using Flare Data Connector...")
+        print("Attesting data using Flare Data Connector...")
         
         attestation_ids = await self.sports_fdc_client.batch_attest_sports_data(
             players=data["players"],
@@ -195,7 +195,7 @@ class SportsBettingAggregator:
             prop_bets=data["prop_bets"]
         )
         
-        print(f"✅ Attested {sum(len(ids) for ids in attestation_ids.values())} data points")
+        print(f"Attested {sum(len(ids) for ids in attestation_ids.values())} data points")
         return attestation_ids
     
     async def display_recommendations(
@@ -210,7 +210,7 @@ class SportsBettingAggregator:
             recommendations: List of betting recommendations
             top_n: Number of top recommendations to display
         """
-        print(f"\n🏆 TOP {min(top_n, len(recommendations))} BETTING RECOMMENDATIONS")
+        print(f"\nTOP {min(top_n, len(recommendations))} BETTING RECOMMENDATIONS")
         print("=" * 80)
         
         for i, rec in enumerate(recommendations[:top_n], 1):
@@ -230,7 +230,7 @@ class SportsBettingAggregator:
             # Display granular analysis if available
             if rec.granular_prediction:
                 granular = rec.granular_prediction
-                print(f"   🔍 Granular Analysis:")
+                print(f"   Granular Analysis:")
                 print(f"      Data Quality: {granular.data_quality_score:.1f}%")
                 print(f"      Similar Matchups: {granular.similar_matchups}")
                 print(f"      Matchup Accuracy: {granular.matchup_accuracy:.1f}%")

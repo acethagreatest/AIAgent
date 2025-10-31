@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Agent Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+    <header>
+      <h1>AI Agent Dashboard</h1>
+      <p>Run analyses and view summaries locally.</p>
+    </header>
+
+    <section>
+      <h2>NFL Analysis</h2>
+      {% if is_running %}
+        <p class="status running">Status: Running...</p>
+        <div class="progress" aria-live="polite" aria-label="In progress">
+          <div class="progress-bar"></div>
+        </div>
+      {% else %}
+        <p class="status idle">Status: Idle</p>
+      {% endif %}
+
+      <form method="post" action="/run/nfl" style="display:inline-block;">
+        <button type="submit" {% if is_running %}disabled{% endif %}>Run NFL Analysis</button>
+      </form>
+      <form method="post" action="/stop" style="display:inline-block;">
+        <button class="btn-stop" type="submit">Stop</button>
+      </form>
+
+      {% if last_error %}
+        <div class="error">Error: {{ last_error }}</div>
+      {% endif %}
+
+      {% if last_result %}
+        <div class="cards">
+          <div class="card">
+            <div class="metric">{{ last_result.players }}</div>
+            <div class="label">Players</div>
+          </div>
+          <div class="card">
+            <div class="metric">{{ last_result.games }}</div>
+            <div class="label">Games</div>
+          </div>
+          <div class="card">
+            <div class="metric">{{ last_result.prop_bets }}</div>
+            <div class="label">Prop Bets</div>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Top Recommendations</h2>
+      {% if recommendations and recommendations|length > 0 %}
+        <ol>
+          {% for rec in recommendations[:10] %}
+            <li>
+              <div><strong>{{ rec.prediction.prop_bet.player.name }}</strong> ({{ rec.prediction.prop_bet.sport.value }})</div>
+              <div>Prop: {{ rec.prediction.prop_bet.prop_type.value }} {{ rec.recommendation }} {{ rec.prediction.prop_bet.line }}</div>
+              <div>Predicted: {{ '%.2f'|format(rec.prediction.predicted_value) }} | Confidence: {{ '%.1f'|format(rec.confidence.overall_confidence) }}%</div>
+              {% if rec.value_rating %}<div>Value: {{ rec.value_rating }}</div>{% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p>No recommendations yet. Run an analysis.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Logs</h2>
+      <div class="logbox-wrap">
+        <pre id="logs" class="logbox"></pre>
+        <button id="btnClear" type="button" class="btn-clear clear-form" onclick="clearLogs(event)">Clear</button>
+      </div>
+    </section>
+
+    <script>
+      async function pollLogs(){
+        try{
+          const res = await fetch('/logs');
+          if(!res.ok) return;
+          const data = await res.json();
+          const el = document.getElementById('logs');
+          el.textContent = (data.lines || []).join('\n');
+          el.scrollTop = el.scrollHeight;
+        }catch(e){/* ignore */}
+      }
+      setInterval(pollLogs, 1000);
+      pollLogs();
+      async function clearLogs(ev){
+        try{
+          const el = document.getElementById('logs');
+          el.textContent = '';
+          await fetch('/logs/clear', {method:'POST'});
+        }catch(e){}
+      }
+    </script>
+    </div>
+  </body>
+  </html>
+
+

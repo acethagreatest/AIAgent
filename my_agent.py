@@ -410,7 +410,7 @@ def summarize_latest_block() -> Optional[str]:
 
 async def run_sports_betting_analysis():
     """Run sports betting analysis with granular analytics."""
-    print("\n🏈 Running Sports Betting Analysis...")
+    print("\nRunning Sports Betting Analysis...")
     
     try:
         # Import sports betting components
