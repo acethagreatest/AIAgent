@@ -29,7 +29,9 @@ class SportsDataCollector:
         self.api_keys = api_keys
         self.session: Optional[aiohttp.ClientSession] = None
         self.web_scraper = SportsDataScraper()
-        self.prop_bet_aggregator = PropBetAggregator()
+        # Disable Selenium to avoid WebDriver connection issues
+        # Set to True to enable Selenium (requires Chrome/ChromeDriver installed)
+        self.prop_bet_aggregator = PropBetAggregator(use_selenium=False)
         
         # API endpoints
         self.espn_base = "https://site.api.espn.com/apis/site/v2/sports"
@@ -370,7 +372,9 @@ class BettingDataCollector:
         """
         self.api_keys = api_keys
         self.session: Optional[aiohttp.ClientSession] = None
-        self.prop_bet_aggregator = PropBetAggregator()
+        # Disable Selenium to avoid WebDriver connection issues
+        # Set to True to enable Selenium (requires Chrome/ChromeDriver installed)
+        self.prop_bet_aggregator = PropBetAggregator(use_selenium=False)
         
     async def __aenter__(self):
         """Async context manager entry."""

@@ -16,20 +16,25 @@
     <section>
       <h2>NFL Analysis</h2>
       {% if is_running %}
-        <p class="status running">Status: Running...</p>
-        <div class="progress" aria-live="polite" aria-label="In progress">
+        <p id="statusText" class="status running">Status: Running...</p>
+        <div id="progressBar" class="progress" aria-live="polite" aria-label="In progress">
           <div class="progress-bar"></div>
         </div>
       {% else %}
-        <p class="status idle">Status: Idle</p>
+        <p id="statusText" class="status idle">Status: Idle</p>
+        <div id="progressBar" class="progress" style="display:none;" aria-live="polite" aria-label="In progress">
+          <div class="progress-bar"></div>
+        </div>
       {% endif %}
 
-      <form method="post" action="/run/nfl" style="display:inline-block;">
-        <button type="submit" {% if is_running %}disabled{% endif %}>Run NFL Analysis</button>
+      <div class="button-group">
+      <form method="post" action="/run/nfl" style="display:inline-block;" id="runForm">
+        <button type="submit" id="runButton" {% if is_running %}disabled{% endif %}>Run NFL Analysis</button>
       </form>
       <form method="post" action="/stop" style="display:inline-block;">
         <button class="btn-stop" type="submit">Stop</button>
       </form>
+      </div>
 
       {% if last_error %}
         <div class="error">Error: {{ last_error }}</div>
@@ -75,30 +80,419 @@
       <h2>Logs</h2>
       <div class="logbox-wrap">
         <pre id="logs" class="logbox"></pre>
-        <button id="btnClear" type="button" class="btn-clear clear-form" onclick="clearLogs(event)">Clear</button>
+        <button id="btnClear" type="button" class="btn-clear clear-form">Clear</button>
+      </div>
+    </section>
+
+    <section id="results-section" style="display:none;">
+      <h2>Analysis Results</h2>
+      <div class="results-container">
+        <div id="results-summary" class="results-summary"></div>
+        <div id="results-detailed" class="results-detailed"></div>
       </div>
     </section>
 
     <script>
+      let logPollingActive = true;
       async function pollLogs(){
+        if(!logPollingActive) return;
         try{
-          const res = await fetch('/logs');
+          // Create timeout controller
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => {
+            controller.abort();
+            logPollingActive = false; // Stop polling if requests hang
+            setTimeout(() => { logPollingActive = true; }, 10000); // Resume after 10s
+          }, 3000); // Shorter timeout
+          
+          const res = await fetch('/logs', {signal: controller.signal});
+          clearTimeout(timeoutId);
+          
           if(!res.ok) return;
           const data = await res.json();
           const el = document.getElementById('logs');
+          if(el) {
           el.textContent = (data.lines || []).join('\n');
           el.scrollTop = el.scrollHeight;
-        }catch(e){/* ignore */}
+          }
+        }catch(e){
+          // If error, pause polling briefly
+          logPollingActive = false;
+          setTimeout(() => { logPollingActive = true; }, 5000);
+        }
       }
-      setInterval(pollLogs, 1000);
+      setInterval(pollLogs, 5000);  // Poll every 5 seconds to reduce load
       pollLogs();
-      async function clearLogs(ev){
+      
+      let statusPollingActive = true;
+      async function pollStatus(){
+        if(!statusPollingActive) return;
         try{
-          const el = document.getElementById('logs');
-          el.textContent = '';
-          await fetch('/logs/clear', {method:'POST'});
-        }catch(e){}
+          // Create timeout controller
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => {
+            controller.abort();
+            statusPollingActive = false; // Stop polling if requests hang
+            setTimeout(() => { statusPollingActive = true; }, 15000); // Resume after 15s
+          }, 3000); // Shorter timeout
+          
+          const res = await fetch('/status', {signal: controller.signal});
+          clearTimeout(timeoutId);
+          
+          if(!res.ok) return;
+          const data = await res.json();
+          
+          // Update button state
+          const runButton = document.getElementById('runButton');
+          const runForm = document.getElementById('runForm');
+          if(runButton && runForm){
+            if(data.running){
+              runButton.disabled = true;
+              runButton.textContent = 'Running...';
+            } else {
+              runButton.disabled = false;
+              runButton.textContent = 'Run NFL Analysis';
+            }
+          }
+          
+          // Update status display in the UI
+          const statusText = document.getElementById('statusText');
+          const progressBar = document.getElementById('progressBar');
+          if(statusText){
+            if(data.running){
+              statusText.className = 'status running';
+              statusText.textContent = 'Status: Running...';
+              if(progressBar){
+                progressBar.style.display = 'block';
+              }
+            } else {
+              statusText.className = 'status idle';
+              statusText.textContent = 'Status: Idle';
+              if(progressBar){
+                progressBar.style.display = 'none';
+              }
+            }
+          }
+          
+          // Show results section when analysis is complete (even with 0 results)
+          const resultsSection = document.getElementById('results-section');
+          if(!data.running && resultsSection){
+            // Only load results once when analysis completes
+            if(!resultsLoaded){
+              resultsSection.style.display = 'block';
+              await loadResults();
+              resultsLoaded = true; // Mark as loaded
+            }
+          } else if(data.running && resultsSection){
+            resultsSection.style.display = 'none';
+            resultsLoaded = false; // Reset when analysis starts
+          }
+        }catch(e){
+          // If error, pause polling briefly
+          statusPollingActive = false;
+          setTimeout(() => { statusPollingActive = true; }, 10000);
+        }
       }
+      
+      async function loadResults(){
+        try{
+          const res = await fetch('/results');
+          if(!res.ok) return;
+          const data = await res.json();
+          
+          // Update summary
+          const summaryDiv = document.getElementById('results-summary');
+          if(summaryDiv && data.summary){
+            summaryDiv.innerHTML = `
+              <h3>Analysis Summary</h3>
+              <div class="cards">
+                <div class="card">
+                  <div class="metric">${data.summary.players || 0}</div>
+                  <div class="label">Players Analyzed</div>
+                </div>
+                <div class="card">
+                  <div class="metric">${data.summary.games || 0}</div>
+                  <div class="label">Games Analyzed</div>
+                </div>
+                <div class="card">
+                  <div class="metric">${data.summary.prop_bets || 0}</div>
+                  <div class="label">Prop Bets Analyzed</div>
+                </div>
+                <div class="card">
+                  <div class="metric">${data.total || 0}</div>
+                  <div class="label">Recommendations Generated</div>
+                </div>
+              </div>
+            `;
+          }
+          
+          // Update detailed recommendations
+          const detailedDiv = document.getElementById('results-detailed');
+          if(detailedDiv){
+            if(data.recommendations && data.recommendations.length > 0){
+              let html = '<h3>All Recommendations</h3><div class="recommendations-list">';
+              
+              data.recommendations.forEach((rec, idx) => {
+              const pred = rec.prediction || {};
+              const prop = pred.prop_bet || {};
+              const player = prop.player || {};
+              const conf = rec.confidence || {};
+              
+              html += `
+                <div class="recommendation-card">
+                  <div class="rec-header">
+                    <span class="rec-number">#${idx + 1}</span>
+                    <span class="rec-player"><strong>${player.name || 'Unknown'}</strong> (${prop.sport || 'NFL'})</span>
+                  </div>
+                  <div class="rec-body">
+                    <div class="rec-main">
+                      <div class="rec-prop">Prop: <strong>${prop.prop_type || 'Unknown'}</strong> ${rec.prediction?.recommendation || ''} ${prop.line || ''}</div>
+                      <div class="rec-stats">
+                        <span>Predicted: <strong>${pred.predicted_value?.toFixed(2) || 'N/A'}</strong></span>
+                        <span>Confidence: <strong>${conf.overall_confidence?.toFixed(1) || 'N/A'}%</strong></span>
+                      </div>
+                    </div>
+                    <div class="rec-details">
+                      ${rec.recommended_app ? `<div><strong>Recommended App:</strong> ${rec.recommended_app}</div>` : ''}
+                      ${rec.best_odds ? `<div><strong>Best Odds:</strong> ${rec.best_odds}</div>` : ''}
+                      ${rec.value_rating ? `<div><strong>Value Rating:</strong> ${rec.value_rating}</div>` : ''}
+                      ${rec.action_required ? `<div><strong>Action:</strong> ${rec.action_required}</div>` : ''}
+                      ${rec.urgency ? `<div><strong>Urgency:</strong> ${rec.urgency}</div>` : ''}
+                    </div>
+                    ${pred.factors && pred.factors.length > 0 ? `
+                      <div class="rec-factors">
+                        <strong>Key Factors:</strong>
+                        <ul>${pred.factors.map(f => `<li>${f}</li>`).join('')}</ul>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+              });
+              
+              html += '</div>';
+              detailedDiv.innerHTML = html;
+            } else {
+              // Show message when no recommendations
+              detailedDiv.innerHTML = `
+                <h3>All Recommendations</h3>
+                <div class="no-results">
+                  <p>No betting recommendations were generated from this analysis.</p>
+                  <p><strong>Summary:</strong></p>
+                  <ul>
+                    <li>Players analyzed: ${data.summary?.players || 0}</li>
+                    <li>Games analyzed: ${data.summary?.games || 0}</li>
+                    <li>Prop bets analyzed: ${data.summary?.prop_bets || 0}</li>
+                  </ul>
+                  <p><em>This may be because no prop bets were found, or no recommendations met the confidence threshold.</em></p>
+                </div>
+              `;
+            }
+          }
+          
+          // Call observeCards to animate numbers
+          if(typeof observeCards === 'function'){
+            observeCards();
+          }
+        }catch(e){
+          console.error('Error loading results:', e);
+        }
+      }
+      
+      // Track if results have been loaded to prevent reload loops
+      let resultsLoaded = false;
+      
+      // Reset resultsLoaded flag when analysis starts
+      const originalPollStatus = pollStatus;
+      pollStatus = async function() {
+        const wasRunning = document.getElementById('runButton')?.disabled || false;
+        await originalPollStatus();
+        const isNowRunning = document.getElementById('runButton')?.disabled || false;
+        // If analysis just started, reset results loaded flag
+        if(!wasRunning && isNowRunning) {
+          resultsLoaded = false;
+        }
+      };
+      
+      setInterval(pollStatus, 8000);  // Poll every 8 seconds to reduce load
+      pollStatus();
+      
+      // Animate numbers when they appear
+      function animateNumber(element, targetValue, duration = 1000) {
+        if (!element || targetValue === undefined || targetValue === null) return;
+        const startValue = 0;
+        const startTime = performance.now();
+        
+        function update(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // Easing function
+          const eased = progress < 0.5 
+            ? 2 * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+          
+          const currentValue = Math.floor(startValue + (targetValue - startValue) * eased);
+          element.textContent = currentValue;
+          
+          if (progress < 1) {
+            requestAnimationFrame(update);
+          } else {
+            element.textContent = targetValue;
+          }
+        }
+        
+        requestAnimationFrame(update);
+      }
+      
+      // Watch for new cards and animate their numbers
+      function observeCards() {
+        const observer = new MutationObserver(() => {
+          document.querySelectorAll('.metric').forEach(el => {
+            const value = parseInt(el.textContent);
+            if (!isNaN(value) && !el.dataset.animated) {
+              el.dataset.animated = 'true';
+              const originalValue = value;
+              el.textContent = '0';
+              animateNumber(el, originalValue, 1200);
+            }
+          });
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+        
+        // Initial check
+        document.querySelectorAll('.metric').forEach(el => {
+          const value = parseInt(el.textContent);
+          if (!isNaN(value) && !el.dataset.animated) {
+            el.dataset.animated = 'true';
+            const originalValue = value;
+            el.textContent = '0';
+            animateNumber(el, originalValue, 1200);
+          }
+        });
+      }
+      
+      observeCards();
+      
+      async function clearLogs(){
+        try{
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          
+          const res = await fetch('/logs/clear', {
+            method:'POST',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
+          if(res.ok){
+          const el = document.getElementById('logs');
+            if(el) {
+          el.textContent = '';
+            }
+            // Force immediate poll to verify it's cleared
+            await pollLogs();
+          } else {
+            console.error('Failed to clear logs:', res.status);
+          }
+        }catch(e){
+          console.error('Error clearing logs:', e);
+          alert('Failed to clear logs. The page may be unresponsive. Try refreshing.');
+        }
+      }
+      
+      // Set up event listener for clear button
+      const btnClear = document.getElementById('btnClear');
+      if(btnClear) {
+        btnClear.addEventListener('click', clearLogs);
+      }
+      
+      // Prevent double-submission of run form
+      const runForm = document.getElementById('runForm');
+      if(runForm) {
+        runForm.addEventListener('submit', function(e) {
+          const button = document.getElementById('runButton');
+          if(button && button.disabled) {
+            e.preventDefault();
+            console.log('Analysis already running, preventing duplicate submission');
+            return false;
+          }
+          // Disable button immediately to prevent double-clicks
+          if(button) {
+            button.disabled = true;
+            button.textContent = 'Starting...';
+          }
+        });
+      }
+      
+      // Intercept Stop button form submission with timeout
+      const stopForm = document.querySelector('form[action="/stop"]');
+      if(stopForm) {
+        stopForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const stopBtn = stopForm.querySelector('button[type="submit"]');
+          if(stopBtn) {
+            stopBtn.disabled = true;
+            stopBtn.textContent = 'Stopping...';
+          }
+          
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            
+            const res = await fetch('/stop', {
+              method: 'POST',
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if(res.ok) {
+              const data = await res.json();
+              console.log('Stop request successful:', data.message);
+              // Update UI immediately
+              state.is_running = false;
+              // Force immediate status check
+              setTimeout(() => pollStatus(), 100);
+              // Reload page after a short delay
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              // Even if response is not ok, assume it worked and reload
+              console.warn('Stop response not OK, but reloading anyway');
+              setTimeout(() => {
+                window.location.reload();
+              }, 500);
+            }
+          } catch(err) {
+            console.error('Error stopping analysis:', err);
+            // Even on error, try to reload - the server might have received the request
+            console.log('Attempting to reload page despite error');
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          }
+        });
+      }
+      
+      // Force stop polling if page becomes unresponsive
+      window.addEventListener('beforeunload', function() {
+        logPollingActive = false;
+        statusPollingActive = false;
+      });
+      
+      // Add escape key to stop all polling
+      document.addEventListener('keydown', function(e) {
+        if(e.key === 'Escape' && (e.ctrlKey || e.metaKey)) {
+          logPollingActive = false;
+          statusPollingActive = false;
+          console.log('Polling paused. Refresh page to resume.');
+          alert('Polling paused due to unresponsiveness. Please refresh the page.');
+        }
+      });
     </script>
     </div>
   </body>
