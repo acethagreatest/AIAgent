@@ -426,7 +426,8 @@ async def run_sports_betting_analysis():
         # Collect sports data
         print("📊 Collecting sports data...")
         from src.flare_ai_kit.sports.models import Sport
-        data = await aggregator.collect_sports_data([Sport.NBA, Sport.NFL])
+        # Narrow scope to NFL only for testing without API keys
+        data = await aggregator.collect_sports_data([Sport.NFL])
         
         # Generate sample historical data for granular analysis
         print("📈 Generating historical data for granular analysis...")
